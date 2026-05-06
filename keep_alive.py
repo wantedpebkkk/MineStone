@@ -4,11 +4,14 @@ Start the bot and pair it with an uptime monitor such as UptimeRobot
 (free tier) to keep it online around the clock.
 """
 
+import time
 from threading import Thread
 
-from flask import Flask
+from flask import Flask, jsonify
 
 app = Flask(__name__)
+
+_start_time: float = time.time()
 
 
 @app.route("/")
@@ -18,7 +21,14 @@ def home():
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}, 200
+    uptime_seconds = int(time.time() - _start_time)
+    hours, remainder = divmod(uptime_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return jsonify(
+        status="ok",
+        uptime=f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+        uptime_seconds=uptime_seconds,
+    ), 200
 
 
 def _run():

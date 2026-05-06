@@ -1,6 +1,7 @@
 """MineStone – 24/7 Discord Music Bot entry point."""
 
 import asyncio
+import logging
 import os
 
 import discord
@@ -9,6 +10,25 @@ from dotenv import load_dotenv
 import keep_alive as _keep_alive
 
 load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+# Quiet down noisy third-party loggers
+logging.getLogger("discord").setLevel(logging.WARNING)
+logging.getLogger("discord.http").setLevel(logging.WARNING)
+
+log = logging.getLogger("minestone")
+
+# ---------------------------------------------------------------------------
+# Bot setup
+# ---------------------------------------------------------------------------
 
 INTENTS = discord.Intents.default()
 INTENTS.message_content = True
@@ -23,8 +43,8 @@ bot = commands.Bot(
 
 @bot.event
 async def on_ready():
-    print(f"✅  Logged in as {bot.user}  (ID: {bot.user.id})")
-    print("─" * 40)
+    log.info("Logged in as %s (ID: %s)", bot.user, bot.user.id)
+    log.info("Connected to %d guild(s)", len(bot.guilds))
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.listening,
@@ -43,7 +63,7 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
         await ctx.send(f"❌ Bad argument: {error}")
     elif isinstance(error, commands.CommandInvokeError):
         await ctx.send(f"❌ An error occurred: {error.original}")
-        raise error
+        log.exception("CommandInvokeError in %s", ctx.command, exc_info=error.original)
     else:
         await ctx.send(f"❌ {error}")
 

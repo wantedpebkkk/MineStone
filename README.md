@@ -20,7 +20,25 @@ A fully-featured Discord music bot that:
 
 ## 🖥️ Self-Hosting (PC / VPS / Linux server)
 
-### Option A – Docker (recommended, no setup needed)
+### Option A – One-command deploy script (easiest)
+
+```bash
+git clone https://github.com/wantedpebkkk/MineStone.git
+cd MineStone
+bash deploy.sh
+```
+
+`deploy.sh` will:
+1. Check that Docker & Docker Compose are installed.
+2. Prompt you for your Discord token and (optional) Spotify keys.
+3. Write your `.env` file automatically.
+4. Build and start the bot in the background (`docker compose up -d --build`).
+
+The bot restarts automatically on crash or system reboot.
+
+---
+
+### Option B – Docker manually
 
 ```bash
 # 1. Clone the repo
@@ -35,14 +53,18 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The bot restarts automatically on crash or system reboot (`restart: unless-stopped`).
+Useful commands:
 
-To view logs: `docker compose logs -f`  
-To stop: `docker compose down`
+```bash
+docker compose logs -f          # follow live logs
+docker compose restart          # restart the bot
+docker compose down             # stop the bot
+docker compose up -d --build    # rebuild after code changes
+```
 
 ---
 
-### Option B – Plain Python
+### Option C – Plain Python
 
 ```bash
 # 1. Clone and enter the project
@@ -98,7 +120,8 @@ sudo journalctl -u minestone -f   # view logs
 ## ☁️ Replit / UptimeRobot (free-tier cloud hosting)
 
 Set `KEEP_ALIVE=true` in your `.env` (or Replit Secrets) to start the built-in Flask web server on port 8080.  
-Then point a free **UptimeRobot** monitor at `http://<your-replit-url>:8080/` to prevent the project from sleeping.
+Then point a free **UptimeRobot** monitor at `http://<your-replit-url>:8080/health` to prevent the project from sleeping.  
+The `/health` endpoint returns JSON with the current uptime so you can monitor it easily.
 
 ---
 
@@ -107,6 +130,7 @@ Then point a free **UptimeRobot** monitor at `http://<your-replit-url>:8080/` to
 | Command | Aliases | Description |
 |---------|---------|-------------|
 | `!play <query/URL>` | `!p` | Play a song by name, Spotify URL, or YouTube URL |
+| `!playtop <query/URL>` | `!pt` | Add a song to the **top** of the queue (plays next) |
 | `!search <query>` | `!find` | Search Spotify and show top 5 results |
 | `!pause` | – | Pause the current song |
 | `!resume` | `!unpause` | Resume a paused song |
@@ -114,6 +138,7 @@ Then point a free **UptimeRobot** monitor at `http://<your-replit-url>:8080/` to
 | `!stop` | – | Stop playback and clear the queue |
 | `!queue` | `!q`, `!list` | Show the music queue |
 | `!nowplaying` | `!np`, `!current` | Show the currently playing song |
+| `!history` | `!recent` | Show the last 10 played songs |
 | `!volume <0-200>` | `!vol`, `!v` | Set the volume (100 = normal) |
 | `!loop [mode]` | `!repeat` | Cycle / set loop mode: `none`, `song`, `queue` |
 | `!shuffle` | – | Shuffle the queue |
