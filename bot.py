@@ -6,7 +6,6 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-
 import keep_alive as _keep_alive
 
 load_dotenv()
@@ -51,7 +50,8 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
 
 async def main():
     async with bot:
-        _keep_alive.keep_alive()
+        if os.getenv("KEEP_ALIVE", "false").lower() == "true":
+            _keep_alive.keep_alive()
         await bot.load_extension("cogs.music")
         await bot.start(os.environ["DISCORD_TOKEN"])
 
