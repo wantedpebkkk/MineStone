@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import random
 import re
@@ -12,6 +13,8 @@ from urllib.parse import urlparse
 import discord
 import yt_dlp
 from discord.ext import commands, tasks
+
+log = logging.getLogger(__name__)
 
 try:
     import spotipy
@@ -193,7 +196,7 @@ def _ytdl_extract(query: str) -> Optional[dict]:
         try:
             info = ydl.extract_info(query, download=False)
         except Exception as exc:
-            print(f"[yt-dlp] extract_info failed for {query!r}: {exc}")
+            log.error("[yt-dlp] extract_info failed for %r: %s", query, exc)
             return None
 
     if info is None:
@@ -216,7 +219,7 @@ def _ytdl_extract(query: str) -> Optional[dict]:
 
 
 async def _async_extract(query: str) -> Optional[dict]:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, _ytdl_extract, query)
 
 
@@ -300,6 +303,8 @@ class GuildState:
         self.always_channel: Optional[discord.VoiceChannel] = None
         self.text_channel: Optional[discord.abc.Messageable] = None
         self._skip: bool = False      # set by !skip to override loop
+        self.history: List[Song] = []  # last 10 played tracks
+        self._alone_task: Optional[asyncio.Task] = None  # cancelable alone-disconnect
 
 
 # ---------------------------------------------------------------------------
@@ -393,6 +398,11 @@ class Music(commands.Cog, name="Music 🎵"):
         song.stream_url = fresh_url
         st.current = song
 
+        # Record in per-guild history (keep last 10 tracks)
+        st.history.append(song)
+        if len(st.history) > 10:
+            st.history.pop(0)
+
         source: discord.AudioSource = discord.FFmpegPCMAudio(
             fresh_url,
             before_options=FFMPEG_BEFORE_OPTIONS,
@@ -402,7 +412,7 @@ class Music(commands.Cog, name="Music 🎵"):
 
         def _after(error: Optional[Exception]) -> None:
             if error:
-                print(f"[MineStone] Player error: {error}")
+                log.error("Player error: %s", error)
             asyncio.run_coroutine_threadsafe(
                 self._play_next(ctx), self.bot.loop
             )
@@ -431,9 +441,7 @@ class Music(commands.Cog, name="Music 🎵"):
             try:
                 await st.always_channel.connect()
             except Exception as exc:
-                print(
-                    f"[MineStone] 24/7 reconnect failed (guild {guild_id}): {exc}"
-                )
+                log.error("24/7 reconnect failed (guild %s): %s", guild_id, exc)
 
     @_reconnect_loop.before_loop
     async def _before_reconnect(self) -> None:
@@ -703,6 +711,87 @@ class Music(commands.Cog, name="Music 🎵"):
         st.queue.clear()
         await ctx.send(f"🗑️ Cleared **{count}** songs from the queue.")
 
+    @commands.command(name="playtop", aliases=["pt"])
+    async def playtop(self, ctx: commands.Context, *, query: str) -> None:
+        """Add a song to the top of the queue so it plays next.
+
+        Accepts the same input as ``!play`` (name, Spotify URL, YouTube URL).
+        """
+        st = self._state(ctx.guild.id)
+        st.text_channel = ctx.channel
+
+        if not await self._ensure_voice(ctx):
+            return
+
+        async with ctx.typing():
+            # ── Spotify URL ─────────────────────────────────────────────
+            if _is_spotify_url(query):
+                if sp is None:
+                    return await ctx.send(
+                        "❌ Spotify credentials are not set. "
+                        "Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to your `.env`."
+                    )
+                queries = _spotify_queries(query)
+                if not queries:
+                    return await ctx.send("❌ Could not read that Spotify link.")
+                # For playtop insert in reverse so first track ends up at front
+                songs_to_insert: List[Song] = []
+                for q in queries:
+                    data = await _async_extract(f"ytsearch:{q}")
+                    if data:
+                        songs_to_insert.append(Song.from_ytdl(data, ctx.author))
+                for song in reversed(songs_to_insert):
+                    st.queue.insert(0, song)
+                added = len(songs_to_insert)
+
+            # ── YouTube URL ─────────────────────────────────────────────
+            elif _is_youtube_url(query):
+                data = await _async_extract(query)
+                if not data:
+                    return await ctx.send("❌ Nothing found for that query.")
+                st.queue.insert(0, Song.from_ytdl(data, ctx.author))
+                added = 1
+
+            # ── Plain search query ───────────────────────────────────────
+            else:
+                yt_query = f"ytsearch:{_spotify_search_query(query)}"
+                data = await _async_extract(yt_query)
+                if not data:
+                    return await ctx.send("❌ Nothing found for that query.")
+                st.queue.insert(0, Song.from_ytdl(data, ctx.author))
+                added = 1
+
+            if added == 0:
+                return await ctx.send("❌ Nothing found for that query.")
+
+            if added == 1:
+                song = st.queue[0]
+                await ctx.send(
+                    embed=song.embed("Queued Next ⏭️", discord.Color.orange())
+                )
+            else:
+                await ctx.send(f"⏭️ Added **{added}** songs to the top of the queue!")
+
+            already_playing = ctx.voice_client.is_playing() or ctx.voice_client.is_paused()
+            if not already_playing:
+                await self._play_next(ctx)
+
+    @commands.command(name="history", aliases=["recent"])
+    async def history(self, ctx: commands.Context) -> None:
+        """Show the last 10 songs that were played."""
+        st = self._state(ctx.guild.id)
+        if not st.history:
+            return await ctx.send("❌ No songs have been played yet.")
+
+        embed = discord.Embed(title="Recently Played 🕓", color=discord.Color.purple())
+        lines = []
+        for i, song in enumerate(reversed(st.history), 1):
+            lines.append(
+                f"`{i}.` [{song.title}]({song.webpage_url}) `{song.fmt_duration()}`"
+            )
+        embed.description = "\n".join(lines)
+        await ctx.send(embed=embed)
+
     # ------------------------------------------------------------------ #
     # Settings commands                                                    #
     # ------------------------------------------------------------------ #
@@ -777,17 +866,32 @@ class Music(commands.Cog, name="Music 🎵"):
         st = self._state(guild.id)
         if st.always_on:
             return
-        # Check whether any humans remain
+
+        # If someone joined our channel, cancel any pending alone-disconnect
+        if after.channel and after.channel.id == vc.channel.id:
+            if st._alone_task and not st._alone_task.done():
+                st._alone_task.cancel()
+                st._alone_task = None
+            return
+
+        # Still humans present – nothing to do
         if any(not m.bot for m in vc.channel.members):
             return
-        # Wait 60 s then disconnect if still alone
-        await asyncio.sleep(ALONE_DISCONNECT_SECONDS)
-        vc2: Optional[discord.VoiceClient] = guild.voice_client
-        if vc2 and vc2.is_connected():
-            if not any(not m.bot for m in vc2.channel.members):
-                st.queue.clear()
-                st.current = None
-                await vc2.disconnect()
+
+        # Cancel any previously scheduled disconnect before creating a new one
+        if st._alone_task and not st._alone_task.done():
+            st._alone_task.cancel()
+
+        async def _do_alone_disconnect() -> None:
+            await asyncio.sleep(ALONE_DISCONNECT_SECONDS)
+            vc2: Optional[discord.VoiceClient] = guild.voice_client
+            if vc2 and vc2.is_connected():
+                if not any(not m.bot for m in vc2.channel.members):
+                    st.queue.clear()
+                    st.current = None
+                    await vc2.disconnect()
+
+        st._alone_task = asyncio.create_task(_do_alone_disconnect())
 
 
 async def setup(bot: commands.Bot) -> None:

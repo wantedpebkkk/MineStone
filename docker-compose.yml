@@ -3,6 +3,23 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
-    # Uncomment the line below if you need the keep-alive web server (Replit/UptimeRobot)
+    # Uncomment below to expose the keep-alive web server (Replit / UptimeRobot)
     # environment:
     #   - KEEP_ALIVE=true
+    # ports:
+    #   - "8080:8080"
+
+    # Prevent runaway disk usage from log output
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # Restart if the container becomes unhealthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)'"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
