@@ -1,0 +1,8 @@
+services:
+  minestone:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    # Uncomment the line below if you need the keep-alive web server (Replit/UptimeRobot)
+    # environment:
+    #   - KEEP_ALIVE=true

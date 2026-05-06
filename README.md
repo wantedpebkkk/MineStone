@@ -11,30 +11,94 @@ A fully-featured Discord music bot that:
 
 ## Requirements
 
-- Python 3.9+
-- [FFmpeg](https://ffmpeg.org/download.html) installed and on your `PATH`
+- Python 3.9+ **or** Docker
+- [FFmpeg](https://ffmpeg.org/download.html) installed and on your `PATH` (not needed with Docker)
 - A [Discord bot token](https://discord.com/developers/applications)
 - *(Optional but recommended)* [Spotify API credentials](https://developer.spotify.com/dashboard)
 
 ---
 
-## Quick Start
+## 🖥️ Self-Hosting (PC / VPS / Linux server)
+
+### Option A – Docker (recommended, no setup needed)
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/wantedpebkkk/MineStone.git
+cd MineStone
+
+# 2. Copy and fill in your secrets
+cp .env.example .env
+# Edit .env – set DISCORD_TOKEN (and Spotify keys if you want Spotify search)
+
+# 3. Start the bot
+docker compose up -d
+```
+
+The bot restarts automatically on crash or system reboot (`restart: unless-stopped`).
+
+To view logs: `docker compose logs -f`  
+To stop: `docker compose down`
+
+---
+
+### Option B – Plain Python
 
 ```bash
 # 1. Clone and enter the project
 git clone https://github.com/wantedpebkkk/MineStone.git
 cd MineStone
 
-# 2. Install dependencies
+# 2. Install FFmpeg
+#    Ubuntu/Debian: sudo apt install ffmpeg
+#    Windows: download from https://ffmpeg.org/download.html and add to PATH
+
+# 3. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Configure secrets
+# 4. Configure secrets
 cp .env.example .env
 # Edit .env and fill in DISCORD_TOKEN (+ Spotify keys if you want Spotify search)
 
-# 4. Run
+# 5. Run
 python bot.py
 ```
+
+#### Keep it running with systemd (Linux)
+
+Create `/etc/systemd/system/minestone.service`:
+
+```ini
+[Unit]
+Description=MineStone Discord Music Bot
+After=network.target
+
+[Service]
+User=YOUR_USER
+WorkingDirectory=/path/to/MineStone
+EnvironmentFile=/path/to/MineStone/.env
+ExecStart=/usr/bin/python3 /path/to/MineStone/bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable and start it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now minestone
+sudo journalctl -u minestone -f   # view logs
+```
+
+---
+
+## ☁️ Replit / UptimeRobot (free-tier cloud hosting)
+
+Set `KEEP_ALIVE=true` in your `.env` (or Replit Secrets) to start the built-in Flask web server on port 8080.  
+Then point a free **UptimeRobot** monitor at `http://<your-replit-url>:8080/` to prevent the project from sleeping.
 
 ---
 
@@ -61,14 +125,6 @@ python bot.py
 
 ---
 
-## 24/7 Hosting
-
-The bot ships with `keep_alive.py` – a tiny Flask web server (port 8080).  
-Point a free uptime monitor such as **UptimeRobot** at `http://<your-host>:8080/` 
-to keep the bot alive on free-tier platforms like Replit.
-
----
-
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -77,4 +133,5 @@ to keep the bot alive on free-tier platforms like Replit.
 | `SPOTIFY_CLIENT_ID` | ⚡ recommended | Spotify API client ID |
 | `SPOTIFY_CLIENT_SECRET` | ⚡ recommended | Spotify API client secret |
 | `PREFIX` | ❌ | Command prefix (default: `!`) |
+| `KEEP_ALIVE` | ❌ | Set to `true` only for Replit/UptimeRobot hosting (default: `false`) |
 
