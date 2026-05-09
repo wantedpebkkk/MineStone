@@ -61,7 +61,8 @@ fi
 
 # Validate DISCORD_TOKEN in existing/new .env before deployment
 discord_token="$(grep -E '^DISCORD_TOKEN=' .env | head -n1 | cut -d= -f2- | xargs || true)"
-if [[ -z "${discord_token}" || "${discord_token}" == "your_discord_bot_token_here" ]]; then
+discord_token_normalized="$(echo "${discord_token}" | tr '[:upper:]' '[:lower:]')"
+if [[ -z "${discord_token}" || "${discord_token_normalized}" == your_* || "${discord_token_normalized}" == *token_here* || "${discord_token_normalized}" == changeme* ]]; then
     echo -e "${RED}✗ DISCORD_TOKEN is missing in .env. Set a real Discord bot token and rerun.${NC}"
     exit 1
 fi
