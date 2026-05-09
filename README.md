@@ -22,7 +22,7 @@ A fully-featured Discord music bot that:
 
 ### Quick own-server checklist
 
-1. Set `DISCORD_TOKEN` in `.env` (required).
+1. Copy `.env.example` to `.env`, then set `DISCORD_TOKEN` (required).
 2. Optionally set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
 3. Keep `KEEP_ALIVE=false` for your own VPS/server.
 4. Start with Docker (`bash deploy.sh` or `docker compose up -d`), or run plain Python + systemd.

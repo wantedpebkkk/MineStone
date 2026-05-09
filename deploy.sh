@@ -60,11 +60,15 @@ EOF
 fi
 
 # Validate DISCORD_TOKEN in existing/new .env before deployment
-discord_token="$(grep -E '^DISCORD_TOKEN=' .env | head -n1 | cut -d= -f2- | xargs || true)"
+discord_token="$(sed -n 's/^DISCORD_TOKEN=//p' .env | head -n1)"
+discord_token="${discord_token%\"}"
+discord_token="${discord_token#\"}"
+discord_token="${discord_token%\'}"
+discord_token="${discord_token#\'}"
 discord_token_normalized="$(echo "${discord_token}" | tr '[:upper:]' '[:lower:]')"
 invalid_token=false
 case "${discord_token_normalized}" in
-    ""|your_*|*token_here*|changeme*)
+    ""|your_discord_bot_token_here|your_token_here|changeme|replace_me)
         invalid_token=true
         ;;
 esac
