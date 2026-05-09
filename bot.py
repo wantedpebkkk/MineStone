@@ -32,6 +32,9 @@ _TOKEN_PLACEHOLDERS = {
     "your_token_here",
     "changeme",
     "replace_me",
+    "token",
+    "discord_token",
+    "none",
 }
 
 
@@ -97,7 +100,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except RuntimeError as error:
-        log.error("%s", error)
+        log.error("Startup failed: %s", error)
         sys.exit(1)
     except Exception:
         log.exception("Bot failed to start")
