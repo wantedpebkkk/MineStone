@@ -32,8 +32,6 @@ _TOKEN_PLACEHOLDERS = {
     "your_token_here",
     "changeme",
     "replace_me",
-    "token",
-    "discord_token",
     "none",
 }
 
@@ -103,5 +101,5 @@ if __name__ == "__main__":
         log.error("Startup failed: %s", error)
         sys.exit(1)
     except Exception:
-        log.exception("Bot failed to start")
+        log.exception("Unexpected error during bot startup. Check logs above for details.")
         raise
