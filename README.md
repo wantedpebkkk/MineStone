@@ -20,6 +20,14 @@ A fully-featured Discord music bot that:
 
 ## 🖥️ Self-Hosting (PC / VPS / Linux server)
 
+### Quick own-server checklist
+
+1. If using `deploy.sh`, it auto-creates `.env`; otherwise copy `.env.example` to `.env`, then set `DISCORD_TOKEN` (required).
+2. Optionally set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
+3. Keep `KEEP_ALIVE=false` for your own VPS/server.
+4. Start with Docker (`bash deploy.sh` or `docker compose up -d`), or run plain Python + systemd.
+5. Verify with logs, then test `!join` and `!play` in Discord.
+
 ### Option A – One-command deploy script (easiest)
 
 ```bash
@@ -159,4 +167,3 @@ The `/health` endpoint returns JSON with the current uptime so you can monitor i
 | `SPOTIFY_CLIENT_SECRET` | ⚡ recommended | Spotify API client secret |
 | `PREFIX` | ❌ | Command prefix (default: `!`) |
 | `KEEP_ALIVE` | ❌ | Set to `true` only for Replit/UptimeRobot hosting (default: `false`) |
-

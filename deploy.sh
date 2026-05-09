@@ -55,7 +55,22 @@ PREFIX=${prefix}
 KEEP_ALIVE=false
 EOF
 
+    chmod 600 .env
     echo -e "${GREEN}✓ .env created${NC}"
+fi
+
+# Validate DISCORD_TOKEN in existing/new .env before deployment
+discord_token="$(sed -nE "s/^DISCORD_TOKEN=['\"]?([^'\"]*)['\"]?$/\1/p" .env | head -n1)"
+discord_token_normalized="${discord_token,,}"
+invalid_token=false
+case "${discord_token_normalized}" in
+    ""|your_discord_bot_token_here|your_token_here|changeme|replace_me)
+        invalid_token=true
+        ;;
+esac
+if [[ "${invalid_token}" == true ]]; then
+    echo -e "${RED}✗ DISCORD_TOKEN is missing or still set to a placeholder in .env. Set a real token and rerun.${NC}"
+    exit 1
 fi
 
 # ── Build & start ─────────────────────────────────────────────────────────────
@@ -75,3 +90,4 @@ echo "    docker compose down             – stop the bot"
 echo "    docker compose up -d --build    – rebuild after code changes"
 echo ""
 echo "  The bot restarts automatically on crash or system reboot."
+echo "  For your own VPS/server, keep KEEP_ALIVE=false in .env."
