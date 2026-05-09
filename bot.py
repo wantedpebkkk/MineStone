@@ -29,14 +29,18 @@ log = logging.getLogger("minestone")
 
 def _require_discord_token() -> str:
     token = os.getenv("DISCORD_TOKEN", "").strip()
-    invalid_tokens = {
-        "",
+    if not token:
+        raise RuntimeError(
+            "DISCORD_TOKEN is missing or placeholder. "
+            "Set DISCORD_TOKEN in .env or environment before starting the bot."
+        )
+    placeholder_tokens = {
         "your_discord_bot_token_here",
         "your_token_here",
         "changeme",
         "replace_me",
     }
-    if token.lower() in invalid_tokens:
+    if token.lower() in placeholder_tokens:
         raise RuntimeError(
             "DISCORD_TOKEN is missing or placeholder. "
             "Set DISCORD_TOKEN in .env or environment before starting the bot."
