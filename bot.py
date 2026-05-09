@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import sys
 
 import discord
 from discord.ext import commands
@@ -25,6 +26,23 @@ logging.getLogger("discord").setLevel(logging.WARNING)
 logging.getLogger("discord.http").setLevel(logging.WARNING)
 
 log = logging.getLogger("minestone")
+
+_TOKEN_PLACEHOLDERS = {
+    "your_discord_bot_token_here",
+    "your_token_here",
+    "changeme",
+    "replace_me",
+    "none",
+}
+
+
+def _require_discord_token() -> str:
+    token = os.getenv("DISCORD_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("DISCORD_TOKEN is missing. Set it in .env or environment before starting the bot.")
+    if token.lower() in _TOKEN_PLACEHOLDERS:
+        raise RuntimeError("DISCORD_TOKEN appears to be a placeholder value. Set a real token in .env or environment.")
+    return token
 
 # ---------------------------------------------------------------------------
 # Bot setup
@@ -73,8 +91,15 @@ async def main():
         if os.getenv("KEEP_ALIVE", "false").lower() == "true":
             _keep_alive.keep_alive()
         await bot.load_extension("cogs.music")
-        await bot.start(os.environ["DISCORD_TOKEN"])
+        await bot.start(_require_discord_token())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except RuntimeError as error:
+        log.error("Startup failed: %s", error)
+        sys.exit(1)
+    except Exception:
+        log.exception("Unexpected error during bot startup. Check logs above for details.")
+        raise
