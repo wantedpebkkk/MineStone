@@ -26,6 +26,13 @@ logging.getLogger("discord.http").setLevel(logging.WARNING)
 
 log = logging.getLogger("minestone")
 
+_TOKEN_PLACEHOLDERS = {
+    "your_discord_bot_token_here",
+    "your_token_here",
+    "changeme",
+    "replace_me",
+}
+
 
 def _require_discord_token() -> str:
     token = os.getenv("DISCORD_TOKEN", "").strip()
@@ -34,13 +41,7 @@ def _require_discord_token() -> str:
             "DISCORD_TOKEN is missing or placeholder. "
             "Set DISCORD_TOKEN in .env or environment before starting the bot."
         )
-    placeholder_tokens = {
-        "your_discord_bot_token_here",
-        "your_token_here",
-        "changeme",
-        "replace_me",
-    }
-    if token.lower() in placeholder_tokens:
+    if token.lower() in _TOKEN_PLACEHOLDERS:
         raise RuntimeError(
             "DISCORD_TOKEN is missing or placeholder. "
             "Set DISCORD_TOKEN in .env or environment before starting the bot."
@@ -103,3 +104,6 @@ if __name__ == "__main__":
     except RuntimeError as error:
         log.error("%s", error)
         raise SystemExit(1) from error
+    except Exception:
+        log.exception("Bot failed to start")
+        raise
