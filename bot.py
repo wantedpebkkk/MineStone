@@ -26,6 +26,23 @@ logging.getLogger("discord.http").setLevel(logging.WARNING)
 
 log = logging.getLogger("minestone")
 
+
+def _require_discord_token() -> str:
+    token = os.getenv("DISCORD_TOKEN", "").strip()
+    invalid_tokens = {
+        "",
+        "your_discord_bot_token_here",
+        "your_token_here",
+        "changeme",
+        "replace_me",
+    }
+    if token.lower() in invalid_tokens:
+        raise RuntimeError(
+            "DISCORD_TOKEN is missing or placeholder. "
+            "Set DISCORD_TOKEN in .env or environment before starting the bot."
+        )
+    return token
+
 # ---------------------------------------------------------------------------
 # Bot setup
 # ---------------------------------------------------------------------------
@@ -73,8 +90,12 @@ async def main():
         if os.getenv("KEEP_ALIVE", "false").lower() == "true":
             _keep_alive.keep_alive()
         await bot.load_extension("cogs.music")
-        await bot.start(os.environ["DISCORD_TOKEN"])
+        await bot.start(_require_discord_token())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except RuntimeError as error:
+        log.error("%s", error)
+        raise SystemExit(1) from error
