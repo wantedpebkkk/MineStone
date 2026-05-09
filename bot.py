@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import sys
 
 import discord
 from discord.ext import commands
@@ -37,15 +38,9 @@ _TOKEN_PLACEHOLDERS = {
 def _require_discord_token() -> str:
     token = os.getenv("DISCORD_TOKEN", "").strip()
     if not token:
-        raise RuntimeError(
-            "DISCORD_TOKEN is missing or placeholder. "
-            "Set DISCORD_TOKEN in .env or environment before starting the bot."
-        )
+        raise RuntimeError("DISCORD_TOKEN is missing. Set it in .env or environment before starting the bot.")
     if token.lower() in _TOKEN_PLACEHOLDERS:
-        raise RuntimeError(
-            "DISCORD_TOKEN is missing or placeholder. "
-            "Set DISCORD_TOKEN in .env or environment before starting the bot."
-        )
+        raise RuntimeError("DISCORD_TOKEN appears to be a placeholder value. Set a real token in .env or environment.")
     return token
 
 # ---------------------------------------------------------------------------
@@ -103,7 +98,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except RuntimeError as error:
         log.error("%s", error)
-        raise SystemExit(1) from error
+        sys.exit(1)
     except Exception:
         log.exception("Bot failed to start")
         raise
