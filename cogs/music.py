@@ -457,10 +457,18 @@ class Music(commands.Cog, name="Music 🎵"):
         if not ctx.author.voice:
             return await ctx.send("❌ You must be in a voice channel!")
         ch = ctx.author.voice.channel
-        if ctx.voice_client:
-            await ctx.voice_client.move_to(ch)
-        else:
-            await ch.connect()
+        try:
+            if ctx.voice_client:
+                await ctx.voice_client.move_to(ch)
+            else:
+                await ch.connect()
+        except (discord.ClientException, discord.Forbidden, asyncio.TimeoutError) as exc:
+            log.warning("Failed to join voice channel %s in guild %s: %s", ch.id, ctx.guild.id, exc)
+            return await ctx.send("❌ I couldn't join that voice channel. Check permissions and try again.")
+
+        vc = ctx.voice_client
+        if not vc or not vc.is_connected() or vc.channel.id != ch.id:
+            return await ctx.send("❌ I couldn't join that voice channel. Try again.")
         st = self._state(ctx.guild.id)
         st.always_on = True
         st.always_channel = ch
