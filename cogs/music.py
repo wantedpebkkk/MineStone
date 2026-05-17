@@ -453,7 +453,7 @@ class Music(commands.Cog, name="Music 🎵"):
 
     @commands.command(name="join", aliases=["connect", "j"])
     async def join(self, ctx: commands.Context) -> None:
-        """Join your current voice channel and enable 24/7 mode there."""
+        """Join your current voice channel."""
         if not ctx.author.voice:
             return await ctx.send("❌ You must be in a voice channel!")
         ch = ctx.author.voice.channel
@@ -469,10 +469,7 @@ class Music(commands.Cog, name="Music 🎵"):
         vc = ctx.voice_client
         if not vc or not vc.is_connected() or vc.channel.id != ch.id:
             return await ctx.send("❌ I couldn't join that voice channel. Try again.")
-        st = self._state(ctx.guild.id)
-        st.always_on = True
-        st.always_channel = ch
-        await ctx.send(f"✅ Joined **{ch.name}** and enabled **24/7 mode**!")
+        await ctx.send(f"✅ Joined **{ch.name}**.")
 
     @commands.command(name="leave", aliases=["disconnect", "dc"])
     async def leave(self, ctx: commands.Context) -> None:
