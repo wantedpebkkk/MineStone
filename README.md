@@ -167,3 +167,13 @@ The `/health` endpoint returns JSON with the current uptime so you can monitor i
 | `SPOTIFY_CLIENT_SECRET` | ⚡ recommended | Spotify API client secret |
 | `PREFIX` | ❌ | Command prefix (default: `!`) |
 | `KEEP_ALIVE` | ❌ | Set to `true` only for Replit/UptimeRobot hosting (default: `false`) |
+| `AUTO_JOIN_CHANNEL_ID` | ❌ | Voice channel ID to auto-join on startup with 24/7 mode (right-click channel → Copy ID) |
+
+### Always-on 24/7 VC (auto-join on startup)
+
+Set `AUTO_JOIN_CHANNEL_ID` to the ID of your voice channel and the bot will:
+- Join that channel automatically every time it starts
+- Enable 24/7 mode instantly (no `!join` command needed)
+- Auto-reconnect if disconnected (every 30 seconds)
+
+To get a channel ID: enable **Developer Mode** in Discord settings, then right-click the voice channel → **Copy Channel ID**.

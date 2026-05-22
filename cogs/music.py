@@ -453,7 +453,7 @@ class Music(commands.Cog, name="Music 🎵"):
 
     @commands.command(name="join", aliases=["connect", "j"])
     async def join(self, ctx: commands.Context) -> None:
-        """Join your current voice channel and enable 24/7 mode there."""
+        """Join your current voice channel."""
         if not ctx.author.voice:
             return await ctx.send("❌ You must be in a voice channel!")
         ch = ctx.author.voice.channel
@@ -469,10 +469,7 @@ class Music(commands.Cog, name="Music 🎵"):
         vc = ctx.voice_client
         if not vc or not vc.is_connected() or vc.channel.id != ch.id:
             return await ctx.send("❌ I couldn't join that voice channel. Try again.")
-        st = self._state(ctx.guild.id)
-        st.always_on = True
-        st.always_channel = ch
-        await ctx.send(f"✅ Joined **{ch.name}** and enabled **24/7 mode**!")
+        await ctx.send(f"✅ Joined **{ch.name}**.")
 
     @commands.command(name="leave", aliases=["disconnect", "dc"])
     async def leave(self, ctx: commands.Context) -> None:
@@ -859,6 +856,43 @@ class Music(commands.Cog, name="Music 🎵"):
     # ------------------------------------------------------------------ #
     # Listeners                                                            #
     # ------------------------------------------------------------------ #
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        """Auto-join the channel set in AUTO_JOIN_CHANNEL_ID and enable 24/7 mode."""
+        raw = os.getenv("AUTO_JOIN_CHANNEL_ID", "").strip()
+        if not raw:
+            return
+        try:
+            channel_id = int(raw)
+        except ValueError:
+            log.warning("AUTO_JOIN_CHANNEL_ID=%r is not a valid integer – skipping auto-join.", raw)
+            return
+
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            log.warning("AUTO_JOIN_CHANNEL_ID=%s not found – the bot may lack access.", channel_id)
+            return
+        if not isinstance(channel, discord.VoiceChannel):
+            log.warning("AUTO_JOIN_CHANNEL_ID=%s is not a voice channel.", channel_id)
+            return
+
+        guild = channel.guild
+        vc: Optional[discord.VoiceClient] = guild.voice_client
+        try:
+            if vc and vc.is_connected():
+                if vc.channel.id != channel.id:
+                    await vc.move_to(channel)
+            else:
+                await channel.connect()
+        except Exception as exc:
+            log.error("Auto-join failed for channel %s: %s", channel_id, exc)
+            return
+
+        st = self._state(guild.id)
+        st.always_on = True
+        st.always_channel = channel
+        log.info("Auto-joined voice channel '%s' in guild '%s' with 24/7 mode enabled.", channel.name, guild.name)
 
     @commands.Cog.listener()
     async def on_voice_state_update(
